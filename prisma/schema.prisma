@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum UserType {
+  NORMAL
+  PREMIUM
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String
+  emailVerified  DateTime?
+  image          String?
+  nativeLanguage String?
+  languages      UserLanguage[]
+  password       String?
+  role           UserRole       @default(USER)
+  type           UserType       @default(NORMAL)
+  accounts       Account[]
+}
+
+model Language {
+  languageCode String         @unique
+  words        Word[]
+  User         UserLanguage[]
+
+  @@id([languageCode])
+}
+
+model UserLanguage {
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category[]
+  languageCode String
+  language     Language   @relation(fields: [languageCode], references: [languageCode])
+  UserWord     UserWord[]
+
+  @@id([userId, languageCode])
+}
+
+model Category {
+  id           String       @id @default(cuid())
+  categoryName String
+  userWords    UserWord[]
+  user         UserLanguage @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  userId       String
+}
+
+model Word {
+  id           String        @id @default(cuid())
+  languageCode String
+  wordName     String        @unique
+  language     Language      @relation(fields: [languageCode], references: [languageCode])
+  translations Translation[]
+  userWords    UserWord[]
+  example      String
+
+  @@index([languageCode, wordName], name: "unique_word_per_language")
+}
+
+model Translation {
+  id               String @id @default(cuid())
+  languageCode     String
+  wordId           String
+  translationValue String
+  Word             Word   @relation(fields: [wordId], references: [id])
+
+  @@index([languageCode, wordId], name: "unique_translation_per_word_language")
+}
+
+model UserWord {
+  id         String       @id @default(cuid())
+  wordId     String
+  word       Word         @relation(fields: [wordId], references: [id])
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  user       UserLanguage @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime     @default(now())
+}
+
+model VerificationToken {
+  id       String   @id @default(cuid())
+  email    String
+  name     String
+  password String
+  token    String   @unique
+  expires  DateTime
+
+  @@unique([email, token])
+}
