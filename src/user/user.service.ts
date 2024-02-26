@@ -18,19 +18,6 @@ export class UserService {
         languages: {
           include: {
             UserWord: true,
-            category: {
-              include: {
-                userWords: {
-                  include: {
-                    word: {
-                      include: {
-                        translations: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
           },
         },
       },

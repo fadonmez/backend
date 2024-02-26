@@ -21,9 +21,18 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Throttle({ short: { ttl: 3000, limit: 30 } })
+  @Get(':code/:id')
+  getCategories(
+    @Param('id') id: string,
+    @Param('code') code: string,
+    @Req() req,
+  ) {
+    return this.categoryService.getCategories(id, code, req);
+  }
+
   @Get(':id')
   getCategory(@Param('id') id: string, @Req() req) {
-    return this.categoryService.getCategory(id, req);
+    return this.categoryService.getCategoryById(id, req);
   }
 
   @HttpCode(HttpStatus.CREATED)
