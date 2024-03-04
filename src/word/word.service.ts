@@ -84,8 +84,9 @@ export class WordService {
           };
         }
       }
-      const systemPrompt = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. If "wordName" isn't in "targetLang", return "error": "Please add a word from your target language!" If everything's fine, return {"translation": (translatedWord), "example": (Example sentence in targetLang, max 50 letters)}. If another issue arises, return "error": "Something went wrong". `;
-      const systemPromptUpdate = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. If "wordName" isn't in "targetLang", return "error": "Please add a word from your target language!" If everything's fine, return {"translation": (translatedWord)}. If another issue arises, return "error": "Something went wrong". `;
+      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate "wordName" from "targetLang" to "nativeLang". And give a sample sentence of max 20 words in "targetLang".  If "wordName" is not in "targetLang", it will return "error": "Please add a word from your target language!" If everything is OK, it returns {"translation": (translatedWord), "example": (example)}. If any other problem occurs, it returns "error": "Something went wrong". `;
+
+      const systemPromptUpdate = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. You will translate "wordName" from "targetLang" to "nativeLang". If "wordName" isn't in "targetLang", return "error": "Please add a word from your target language!" If everything's fine, return {"translation": (translatedWord)}. If another issue arises, return "error": "Something went wrong". `;
       const userPrompt = {
         wordName: createWordDto.wordName,
         targetLang: createWordDto.languageCode,
@@ -157,7 +158,7 @@ export class WordService {
               },
               user: {
                 // Burada, kendi modelinize ve alan isimlerinize uygun olarak güncellenmelidir.
-                connect: { id: 'Buraya UserLanguage ID gelecek' },
+                connect: { id: createWordDto.userId },
               },
             },
           },
@@ -175,6 +176,7 @@ export class WordService {
       const word = await this.prisma.userWord.findUnique({
         where: { id },
       });
+      console.log(word.userId, decodedUserInfo.id);
       if (!word) {
         throw new NotFoundException();
       }
@@ -204,9 +206,9 @@ export class WordService {
 
   async getAllWords(id: string | undefined) {
     try {
-      const words = await this.prisma.userLanguage.findMany({
+      const res = await this.prisma.user.findUnique({
         where: {
-          userId: id,
+          id: id,
         },
         select: {
           UserWord: {
@@ -220,8 +222,8 @@ export class WordService {
           },
         },
       });
-      const [UserWord] = words;
-      const formattedWords = UserWord.UserWord.map((word) => {
+      const { UserWord } = res;
+      const formattedWords = UserWord.map((word) => {
         return word.word;
       });
       return formattedWords;

@@ -15,6 +15,10 @@ export class CreateWordDto {
 
   @IsString()
   @IsNotEmpty()
+  languageId: string;
+
+  @IsString()
+  @IsNotEmpty()
   wordName: string;
 
   @IsString()

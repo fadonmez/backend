@@ -15,9 +15,14 @@ export class UserService {
     const foundUser = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        languages: {
+        languages: true,
+        UserWord: {
           include: {
-            UserWord: true,
+            word: {
+              include: {
+                translations: true,
+              },
+            },
           },
         },
       },

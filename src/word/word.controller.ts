@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Post,
   Req,
@@ -17,7 +18,12 @@ import { Throttle } from '@nestjs/throttler';
 export class WordController {
   constructor(private wordService: WordService) {}
 
-  @Throttle({ short: { ttl: 8000, limit: 3 } })
+  @Get(':id')
+  getAllWords(@Param('id') id: string) {
+    return this.wordService.getAllWords(id);
+  }
+
+  @Throttle({ short: { ttl: 20000, limit: 3 } })
   @Post()
   createWord(@Body() createWordDto: CreateWordDto, @Req() req) {
     return this.wordService.createWord(createWordDto, req);

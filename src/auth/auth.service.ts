@@ -35,7 +35,10 @@ export class AuthService {
       });
       if (!user) throw new ForbiddenException('Credentials incorrect');
 
+      if (!user.password) throw new ForbiddenException('Credentials incorrect');
+
       const pwMatches = await bcrypt.compare(loginDto.password, user.password);
+
       if (!pwMatches) throw new ForbiddenException('Credentials incorrect');
 
       if (!user.emailVerified) {

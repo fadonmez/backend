@@ -48,6 +48,7 @@ model User {
   role           UserRole       @default(USER)
   type           UserType       @default(NORMAL)
   accounts       Account[]
+  UserWord       UserWord[]
 }
 
 model Language {
@@ -59,12 +60,12 @@ model Language {
 }
 
 model UserLanguage {
-  id           String     @id() @default(cuid())
+  id           String   @id() @default(cuid())
   userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   languageCode String
-  language     Language   @relation(fields: [languageCode], references: [languageCode])
-  UserWord     UserWord[]
+  language     Language @relation(fields: [languageCode], references: [languageCode])
+  // categories   Category[]
 }
 
 model Category {
@@ -73,6 +74,8 @@ model Category {
   userWords    UserWord[]
   userId       String
   languageCode String
+  // UserLanguage   UserLanguage? @relation(fields: [userLanguageId], references: [id], onDelete: Cascade)
+  // userLanguageId String?
 }
 
 model Word {
@@ -98,14 +101,14 @@ model Translation {
 }
 
 model UserWord {
-  id         String       @id @default(cuid())
+  id         String    @id @default(cuid())
   wordId     String
-  word       Word         @relation(fields: [wordId], references: [id])
-  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  word       Word      @relation(fields: [wordId], references: [id])
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId String
-  user       UserLanguage @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String
-  createdAt  DateTime     @default(now())
+  createdAt  DateTime  @default(now())
 }
 
 model VerificationToken {

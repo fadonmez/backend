@@ -12,7 +12,6 @@ export class LanguageService {
   constructor(private prisma: PrismaService) {}
 
   async createLanguage(createLanguageDto: CreateLanguageDto, req: Request) {
-    console.log(createLanguageDto);
     try {
       const decodedUserInfo = req.user as { id: string; email: string };
 
@@ -32,6 +31,10 @@ export class LanguageService {
 
       if (existingUser.type !== 'PREMIUM') {
         throw new ForbiddenException('Premium only');
+      }
+
+      if (existingUser.nativeLanguage === createLanguageDto.languageCode) {
+        throw new ForbiddenException('Native language cannot be added');
       }
 
       const existingLanguage = existingUser.languages.find(
