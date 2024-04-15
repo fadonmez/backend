@@ -23,7 +23,10 @@ export class WordController {
     return this.wordService.getAllWords(id);
   }
 
-  @Throttle({ short: { ttl: 20000, limit: 3 } })
+  @Throttle({
+    short: { ttl: 6000, limit: 1 },
+    long: { ttl: 21600000, limit: 100 },
+  })
   @Post()
   createWord(@Body() createWordDto: CreateWordDto, @Req() req) {
     return this.wordService.createWord(createWordDto, req);

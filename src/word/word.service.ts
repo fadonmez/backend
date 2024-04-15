@@ -58,9 +58,13 @@ export class WordService {
         (word: any) => word.wordName === createWordDto.wordName,
       );
       if (existingWordUser) {
-        throw new ForbiddenException('Word already exists in your language');
+        throw new ForbiddenException('Word already exists in your account');
       }
       if (existingWord) {
+        if (existingWord.languageCode !== createWordDto.languageCode)
+          throw new ForbiddenException(
+            'Please add a word from your target language!',
+          );
         const existingTranslation: any = existingWord.translations.find(
           (translation: any) =>
             translation.languageCode === createWordDto.nativeLang,
@@ -84,7 +88,7 @@ export class WordService {
           };
         }
       }
-      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate "wordName" from "targetLang" to "nativeLang". And give a sample sentence of max 20 words in "targetLang".  If "wordName" is not in "targetLang", it will return "error": "Please add a word from your target language!" If everything is OK, it returns {"translation": (translatedWord), "example": (example)}. If any other problem occurs, it returns "error": "Something went wrong". `;
+      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate "wordName" from "targetLang" to "nativeLang". And you will give a sample sentence of up to 20 words in "targetLang". Before translating, you will determine in which language "wordName" is a word. If "wordLanguage" != "targetLang" return "error": "Please add a word from your target language!". For example if "wordLanguage" equals to "tr" and "targetLang" equals to "en" return error. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguage), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Something went wrong".`;
 
       const systemPromptUpdate = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. You will translate "wordName" from "targetLang" to "nativeLang". If "wordName" isn't in "targetLang", return "error": "Please add a word from your target language!" If everything's fine, return {"translation": (translatedWord)}. If another issue arises, return "error": "Something went wrong". `;
       const userPrompt = {
@@ -135,7 +139,14 @@ export class WordService {
         systemPrompt,
         userPrompt,
       );
+
       if (result.error) throw new ForbiddenException(result.error);
+
+      if (result.wordLanguage !== createWordDto.languageCode)
+        throw new ForbiddenException(
+          'Please add a word from your target Language',
+        );
+
       const translationValue: any = result.translation;
 
       await this.prisma.word.create({
@@ -176,7 +187,7 @@ export class WordService {
       const word = await this.prisma.userWord.findUnique({
         where: { id },
       });
-      console.log(word.userId, decodedUserInfo.id);
+
       if (!word) {
         throw new NotFoundException();
       }

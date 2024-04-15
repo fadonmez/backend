@@ -11,47 +11,6 @@ import { CategoryDto } from './dto';
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
 
-  async getCategories(id: string, code: string, req: Request) {
-    try {
-      const decodedUserInfo = req.user as { id: string; email: string };
-      const categories = await this.prisma.category.findMany({
-        where: { userId: id, languageCode: code },
-        include: {
-          userWords: {
-            include: {
-              word: {
-                include: {
-                  translations: true,
-                },
-              },
-            },
-            orderBy: {
-              createdAt: 'desc',
-            },
-          },
-        },
-      });
-      if (!categories.length) {
-        throw new NotFoundException();
-      }
-
-      if (categories[0].userId !== decodedUserInfo.id) {
-        throw new ForbiddenException();
-      }
-
-      return categories;
-    } catch (error) {
-      switch (error.statusCode) {
-        case 404:
-          throw new NotFoundException();
-        case 403:
-          throw new ForbiddenException();
-        default:
-          throw error;
-      }
-    }
-  }
-
   async getCategoryById(id: string, req: Request) {
     try {
       const decodedUserInfo = req.user as { id: string; email: string };
@@ -90,14 +49,17 @@ export class CategoryService {
     }
   }
 
-  async updateCategory(id: string, categoryDto: CategoryDto, req: Request) {
+  async createCategory(categoryDto: CategoryDto, req: Request) {
     try {
       const decodedUserInfo = req.user as { id: string; email: string };
-      if (id !== decodedUserInfo.id) {
+      if (categoryDto.userId !== decodedUserInfo.id) {
         throw new ForbiddenException('Not authorized');
       }
       const userCategories = await this.prisma.category.findMany({
-        where: { userId: id, languageCode: categoryDto.languageCode },
+        where: {
+          userId: categoryDto.userId,
+          languageCode: categoryDto.languageCode,
+        },
       });
       const categoryLenght: number = userCategories?.length;
       if (categoryLenght >= 5) {
@@ -112,9 +74,10 @@ export class CategoryService {
       }
       await this.prisma.category.create({
         data: {
-          userId: id,
+          userId: categoryDto.userId,
           categoryName: categoryDto.category.toLowerCase().trim(),
           languageCode: categoryDto.languageCode,
+          userLanguageId: categoryDto.languageId,
         },
       });
 

@@ -4,6 +4,7 @@ import { UserService } from './user.service';
 import { GetUser } from 'src/auth/decorator';
 import { User } from '@prisma/client';
 import { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 
 @UseGuards(JwtGuard)
 // this is a guard for all routes in this controller. It checks if the user is logged in and has a valid token. If the user is not logged in or the token is invalid, it will throw an UnauthorizedException.
@@ -16,8 +17,10 @@ export class UserController {
     return user;
   }
 
+  @Throttle({ short: { ttl: 1000, limit: 10 } })
   @Get(':id')
   getUserById(@Param('id') userId: string, @Req() req: Request) {
+    console.log('istek geldi');
     return this.userService.getUserById(userId, req);
   }
 }

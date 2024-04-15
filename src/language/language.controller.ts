@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { LanguageService } from './language.service';
 import { JwtGuard } from 'src/auth/guard';
 import { CreateLanguageDto } from './dto';
@@ -15,5 +23,10 @@ export class LanguageController {
     @Req() req: Request,
   ) {
     return this.languageService.createLanguage(createLanguageDto, req);
+  }
+
+  @Get(':id')
+  getLanguageById(@Param('id') id: string, @Req() req) {
+    return this.languageService.getLanguageById(id, req);
   }
 }

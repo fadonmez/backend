@@ -61,4 +61,25 @@ export class LanguageService {
       throw error;
     }
   }
+
+  async getLanguageById(id: string, req: Request) {
+    try {
+      const decodedUserInfo = req.user as { id: string; email: string };
+      const language = await this.prisma.userLanguage.findUnique({
+        where: { id },
+        include: {
+          categories: true,
+        },
+      });
+      if (!language) {
+        throw new NotFoundException('Language not found');
+      }
+      if (language.userId !== decodedUserInfo.id) {
+        throw new ForbiddenException('Not Authorized');
+      }
+      return language.categories;
+    } catch (error) {
+      throw error;
+    }
+  }
 }

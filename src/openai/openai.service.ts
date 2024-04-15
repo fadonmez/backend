@@ -27,8 +27,10 @@ export class OpenAiService {
       max_tokens: 64,
       top_p: 1,
     });
+    console.log(response);
 
     const result: any = JSON.parse(response.choices[0].message.content as any);
+    console.log(result);
     return result;
   }
 }

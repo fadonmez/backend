@@ -14,7 +14,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, UpdateUserDto } from './dto';
 import { Request, Response } from 'express';
-import { GoogleGuard } from './guard';
+import { GoogleGuard, JwtGuard } from './guard';
 import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
@@ -57,8 +57,14 @@ export class AuthController {
     return this.authService.googleLogin(req, res);
   }
 
+  @UseGuards(JwtGuard)
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.authService.updateLanguage(id, updateUserDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.updateLanguage(id, updateUserDto, req, res);
   }
 }

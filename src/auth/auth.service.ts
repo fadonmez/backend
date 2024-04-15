@@ -15,7 +15,6 @@ import { Request, Response } from 'express';
 import { jwtSecret } from 'src/utils/constants';
 import { EmailService } from './email/email.service';
 import { TokenService } from './token/token.service';
-import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +24,6 @@ export class AuthService {
     private config: ConfigService,
     private emailService: EmailService,
     private tokenService: TokenService,
-    private userService: UserService,
   ) {}
 
   async login(loginDto: LoginDto, req: Request, res: Response) {
@@ -57,14 +55,13 @@ export class AuthService {
       if (!token) {
         throw new ForbiddenException('Something went wrong!');
       }
-      console.log('sa');
 
       res.cookie('token', token, {
         expires: new Date(Date.now() + 90 * 24 * 60 * 1000),
         httpOnly: true,
       });
 
-      return res.send({ message: 'Logged in successfuly!' });
+      return { message: 'Logged in successfuly!' };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         console.log(error.code);
@@ -143,7 +140,9 @@ export class AuthService {
     });
 
     // return res.send({ message: 'test' });
-    return res.redirect('http://localhost:3000/home');
+    setTimeout(() => {
+      return res.redirect('http://localhost:3000/home');
+    }, 800);
   }
 
   async findOrCreateGoogleUser(userData: any): Promise<any> {
@@ -183,58 +182,97 @@ export class AuthService {
   }
 
   async verify(token: string) {
-    const existingToken =
-      await this.tokenService.getVerificationTokenByToken(token);
+    try {
+      const existingToken =
+        await this.tokenService.getVerificationTokenByToken(token);
 
-    if (!existingToken) throw new NotFoundException('Token not found');
+      if (!existingToken) throw new NotFoundException('Token not found');
 
-    const hasExpired = new Date(existingToken.expires) < new Date();
+      const hasExpired = new Date(existingToken.expires) < new Date();
 
-    if (hasExpired) throw new ForbiddenException('Token has expired');
+      if (hasExpired) throw new ForbiddenException('Token has expired');
 
-    const hashedPassword = await bcrypt.hash(existingToken.password, 10);
+      const hashedPassword = await bcrypt.hash(existingToken.password, 10);
 
-    await this.prisma.user.create({
-      data: {
-        emailVerified: new Date(),
-        email: existingToken.email,
-        name: existingToken.name.toLowerCase(),
-        password: hashedPassword,
-      },
-    });
+      await this.prisma.user.create({
+        data: {
+          emailVerified: new Date(),
+          email: existingToken.email,
+          name: existingToken.name.toLowerCase(),
+          password: hashedPassword,
+        },
+      });
 
-    await this.prisma.verificationToken.delete({
-      where: {
-        id: existingToken.id,
-      },
-    });
+      await this.prisma.verificationToken.delete({
+        where: {
+          id: existingToken.id,
+        },
+      });
 
-    return { message: 'Email verified', statusCode: 200 };
+      return { message: 'Email verified', statusCode: 200 };
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        switch (error.code) {
+          case 'P2002':
+            throw new ForbiddenException(
+              'Email already exists with different provider',
+            );
+        }
+      }
+    }
   }
 
-  async updateLanguage(userId: string, updateUserDto: UpdateUserDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        languages: true,
-      },
-    });
-    if (!existingUser) {
-      throw new NotFoundException('User not found');
-    }
-    if (existingUser.languages.length > 0)
-      throw new ForbiddenException('You already have languages');
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        nativeLanguage: updateUserDto.nativeLang,
-        languages: {
-          create: {
-            languageCode: updateUserDto.targetLang,
+  async updateLanguage(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+    req: Request,
+    res: Response,
+  ) {
+    try {
+      const decodedUserInfo = req.user as { id: string; email: string };
+
+      if (userId !== decodedUserInfo.id) {
+        throw new ForbiddenException('Not Authorized');
+      }
+
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          languages: true,
+        },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException('User not found');
+      }
+      if (existingUser.languages.length > 0)
+        throw new ForbiddenException('You already have languages');
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          nativeLanguage: updateUserDto.nativeLang,
+          languages: {
+            create: {
+              languageCode: updateUserDto.targetLang,
+            },
           },
         },
-      },
-    });
-    return { message: 'Language updated' };
+      });
+      const token = await this.signToken(
+        updatedUser.id,
+        updatedUser.email,
+        updatedUser.nativeLanguage,
+        updatedUser.type,
+      );
+
+      res.cookie('token', token, {
+        expires: new Date(Date.now() + 90 * 24 * 60 * 1000),
+        httpOnly: true,
+      });
+
+      return { message: 'Language updated' };
+    } catch (error) {
+      throw error;
+    }
   }
 }

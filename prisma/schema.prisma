@@ -60,22 +60,23 @@ model Language {
 }
 
 model UserLanguage {
-  id           String   @id() @default(cuid())
+  id           String     @id() @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   languageCode String
-  language     Language @relation(fields: [languageCode], references: [languageCode])
-  // categories   Category[]
+  language     Language   @relation(fields: [languageCode], references: [languageCode])
+  categories   Category[]
+  createdAt    DateTime   @default(now())
 }
 
 model Category {
-  id           String     @id @default(cuid())
-  categoryName String
-  userWords    UserWord[]
-  userId       String
-  languageCode String
-  // UserLanguage   UserLanguage? @relation(fields: [userLanguageId], references: [id], onDelete: Cascade)
-  // userLanguageId String?
+  id             String        @id @default(cuid())
+  categoryName   String
+  userWords      UserWord[]
+  userId         String
+  languageCode   String
+  UserLanguage   UserLanguage? @relation(fields: [userLanguageId], references: [id], onDelete: Cascade)
+  userLanguageId String?
 }
 
 model Word {
