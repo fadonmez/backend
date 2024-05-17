@@ -44,22 +44,25 @@ export class WordService {
       if (!category) {
         throw new ForbiddenException();
       }
-      const userWords: any = await this.getAllWords(createWordDto.userId);
-      if (category.userWords.length >= 200) {
-        throw new ForbiddenException(
-          'You have reached the limit of 200 words per category',
-        );
+      const userWords: any = await this.getUserWords(createWordDto.userId);
+      if (user.type === 'NORMAL' && userWords.length >= 25) {
+        throw new ForbiddenException('You have reached the limit of 25 words ');
       }
-      const existingWord: any = await this.prisma.word.findUnique({
-        where: { wordName: createWordDto.wordName },
-        include: { translations: true },
-      });
+
+      //TODO: CHECK WORD DETECTION SYSTEM
+
       const existingWordUser = userWords?.find(
-        (word: any) => word.wordName === createWordDto.wordName,
+        (word: any) =>
+          word.wordName === createWordDto.wordName.toLowerCase().trim(),
       );
       if (existingWordUser) {
         throw new ForbiddenException('Word already exists in your account');
       }
+      const existingWord: any = await this.prisma.word.findUnique({
+        where: { wordName: createWordDto.wordName.toLowerCase().trim() },
+        include: { translations: true },
+      });
+
       if (existingWord) {
         if (existingWord.languageCode !== createWordDto.languageCode)
           throw new ForbiddenException(
@@ -88,14 +91,18 @@ export class WordService {
           };
         }
       }
-      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate "wordName" from "targetLang" to "nativeLang". And you will give a sample sentence of up to 20 words in "targetLang". Before translating, you will determine in which language "wordName" is a word. If "wordLanguage" != "targetLang" return "error": "Please add a word from your target language!". For example if "wordLanguage" equals to "tr" and "targetLang" equals to "en" return error. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguage), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Something went wrong".`;
 
-      const systemPromptUpdate = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. You will translate "wordName" from "targetLang" to "nativeLang". If "wordName" isn't in "targetLang", return "error": "Please add a word from your target language!" If everything's fine, return {"translation": (translatedWord)}. If another issue arises, return "error": "Something went wrong". `;
       const userPrompt = {
         wordName: createWordDto.wordName,
         targetLang: createWordDto.languageCode,
         nativeLang: createWordDto.nativeLang,
       };
+
+      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Return error if "wordName" contains extra characters. And you will give a sample sentence of up to 12 words in ${userPrompt.targetLang} containing the word. Before translating, you will determine in which language "wordName" is a word. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguageCode), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Something went wrong".`;
+
+      const systemPromptUpdate = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Before translating, you will determine in which language "wordName" is a word. If everything's fine, return {"translation": (translatedWord)}. If another issue arises, return "error": "Something went wrong". `;
+
+      console.log(userPrompt);
       if (existingWord) {
         // if there is an exampleWord then use existingword's example
         const result: any = await this.openAiService.translate(
@@ -140,6 +147,8 @@ export class WordService {
         userPrompt,
       );
 
+      console.log(result);
+
       if (result.error) throw new ForbiddenException(result.error);
 
       if (result.wordLanguage !== createWordDto.languageCode)
@@ -153,6 +162,7 @@ export class WordService {
         data: {
           languageCode: createWordDto.languageCode,
           wordName: createWordDto.wordName.toLowerCase().trim(),
+          wordLevel: result.wordLevel.toUpperCase(),
           example: result.example, // Açıklamanızda sağlanan örneğe dayanarak
           translations: {
             create: [
@@ -202,7 +212,7 @@ export class WordService {
         },
       });
 
-      return { message: 'Word deleted successfully' };
+      return { message: 'Word deleted successfully', statusCode: 200 };
     } catch (error) {
       switch (error.statusCode) {
         case 404:
@@ -215,7 +225,29 @@ export class WordService {
     }
   }
 
-  async getAllWords(id: string | undefined) {
+  async getAllWords(languageCode: string) {
+    const length = await this.prisma.word.count({
+      where: { languageCode: languageCode },
+    });
+    const skip = Math.max(0, Math.floor(Math.random() * length) - 20);
+
+    try {
+      const { words } = await this.prisma.language.findUnique({
+        where: { languageCode: languageCode },
+        select: {
+          words: {
+            take: 20,
+            skip: skip,
+          },
+        },
+      });
+      return words;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async getUserWords(id: string | undefined) {
     try {
       const res = await this.prisma.user.findUnique({
         where: {

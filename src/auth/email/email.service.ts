@@ -17,13 +17,13 @@ export class EmailService {
       name,
       password,
     );
-    const confirmLink = `${this.config.get('CLIENT_URL')}/new-verification?token=${verificationToken.token}`;
+    console.log(verificationToken);
 
     await this.resendService.send({
       from: 'onboarding@resend.dev',
       to: email,
       subject: 'Confirm your email',
-      html: `<p> Click <a href="${confirmLink}">here</a> to confirm your email.</p>`,
+      html: `<p> Your code is ${verificationToken.token}. If it's not you simply ignore.</p>`,
     });
   }
 }

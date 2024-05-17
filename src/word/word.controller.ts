@@ -18,13 +18,13 @@ import { Throttle } from '@nestjs/throttler';
 export class WordController {
   constructor(private wordService: WordService) {}
 
-  @Get(':id')
-  getAllWords(@Param('id') id: string) {
-    return this.wordService.getAllWords(id);
+  @Get(':languageCode')
+  getAllWords(@Param('languageCode') languageCode: string) {
+    return this.wordService.getAllWords(languageCode);
   }
 
   @Throttle({
-    short: { ttl: 6000, limit: 1 },
+    short: { ttl: 3000, limit: 1 },
     long: { ttl: 21600000, limit: 100 },
   })
   @Post()

@@ -25,6 +25,9 @@ export class CategoryService {
                 },
               },
             },
+            orderBy: {
+              createdAt: 'desc',
+            },
           },
         },
       });
@@ -72,7 +75,7 @@ export class CategoryService {
       if (existingCategory) {
         throw new ForbiddenException('Category already exists');
       }
-      await this.prisma.category.create({
+      const res = await this.prisma.category.create({
         data: {
           userId: categoryDto.userId,
           categoryName: categoryDto.category.toLowerCase().trim(),
@@ -81,8 +84,13 @@ export class CategoryService {
         },
       });
 
-      return { message: 'Category created successfully' };
+      return {
+        message: 'Category created successfully',
+        categoryId: res.id,
+        statusCode: 201,
+      };
     } catch (error) {
+      console.log(error);
       throw error;
     }
   }
@@ -105,7 +113,7 @@ export class CategoryService {
         where: { id },
       });
 
-      return { message: 'Category deleted successfully' };
+      return { message: 'Category deleted successfully', statusCode: 200 };
     } catch (error) {
       switch (error.statusCode) {
         case 404:

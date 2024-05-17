@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -28,5 +29,15 @@ export class LanguageController {
   @Get(':id')
   getLanguageById(@Param('id') id: string, @Req() req) {
     return this.languageService.getLanguageById(id, req);
+  }
+
+  @Delete(':id')
+  cancelSubscription(@Param('id') id: string, @Req() req) {
+    return this.languageService.cancelSubscription(id, req);
+  }
+
+  @Post(':id')
+  createSubsciption(@Param('id') id: string, @Req() req) {
+    return this.languageService.createSubsciption(id, req);
   }
 }

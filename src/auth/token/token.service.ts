@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { v4 as uuidv4 } from 'uuid';
+import * as randomize from 'randomatic';
 
 @Injectable()
 export class TokenService {
   constructor(private prisma: PrismaService) {}
   async createToken(email: string, name: string, password: string) {
-    const token = uuidv4();
+    console.log('Sa');
+    const code = randomize('000000');
+    console.log(code);
+    // const token = uuidv4();
 
     const expires = new Date(new Date().getTime() + 3600 * 1000);
 
@@ -25,7 +28,7 @@ export class TokenService {
         email,
         name,
         password,
-        token,
+        token: code,
         expires,
       },
     });

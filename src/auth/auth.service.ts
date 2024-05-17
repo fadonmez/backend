@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -56,12 +57,7 @@ export class AuthService {
         throw new ForbiddenException('Something went wrong!');
       }
 
-      res.cookie('token', token, {
-        expires: new Date(Date.now() + 90 * 24 * 60 * 1000),
-        httpOnly: true,
-      });
-
-      return { message: 'Logged in successfuly!' };
+      return { message: 'Logged in successfuly!', token, statusCode: 200 };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         console.log(error.code);
@@ -77,6 +73,7 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
+    console.log(registerDto);
     try {
       await this.emailService.sendMail(
         registerDto.email,
@@ -84,7 +81,7 @@ export class AuthService {
         registerDto.password,
       );
 
-      return { success: 'Confirmation Email Sent' };
+      return { success: 'Confirmation Email Sent', statusCode: 201 };
     } catch (error) {
       throw new RequestTimeoutException('Something went wrong');
     }
@@ -109,7 +106,7 @@ export class AuthService {
     };
 
     const token = await this.jwt.signAsync(payload, {
-      expiresIn: '120m',
+      expiresIn: '10d',
       secret: jwtSecret,
     });
 
@@ -181,20 +178,38 @@ export class AuthService {
     }
   }
 
-  async verify(token: string) {
+  async verify(token: string, email: string) {
     try {
       const existingToken =
         await this.tokenService.getVerificationTokenByToken(token);
 
+      console.log(existingToken);
+
       if (!existingToken) throw new NotFoundException('Token not found');
+
+      if (existingToken.email !== email)
+        throw new ConflictException('Not allowed');
+
+      //TODO: CHECK IF TOKEN HAS EXPIRED
 
       const hasExpired = new Date(existingToken.expires) < new Date();
 
-      if (hasExpired) throw new ForbiddenException('Token has expired');
+      if (hasExpired) {
+        await this.prisma.verificationToken.delete({
+          where: {
+            id: existingToken.id,
+          },
+        });
+        throw new ForbiddenException('Token has expired');
+      }
+
+      const isMatched = existingToken.token === token;
+
+      console.log(isMatched);
 
       const hashedPassword = await bcrypt.hash(existingToken.password, 10);
 
-      await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: {
           emailVerified: new Date(),
           email: existingToken.email,
@@ -209,8 +224,26 @@ export class AuthService {
         },
       });
 
-      return { message: 'Email verified', statusCode: 200 };
+      const jwtToken = await this.signToken(
+        user.id,
+        user.email,
+        user.nativeLanguage,
+        user.type,
+      );
+
+      await this.prisma.verificationToken.deleteMany({
+        where: {
+          expires: {
+            lt: new Date(), // Geçmişteki tüm tarihler
+          },
+        },
+      });
+
+      return { message: 'Email verified', token: jwtToken, statusCode: 200 };
     } catch (error) {
+      if (error.status === 404) throw new NotFoundException(error.message);
+      if (error.status === 403) throw new ForbiddenException(error.message);
+      if (error.status === 409) throw new ConflictException(error.message);
       if (error instanceof PrismaClientKnownRequestError) {
         switch (error.code) {
           case 'P2002':
@@ -254,10 +287,12 @@ export class AuthService {
           languages: {
             create: {
               languageCode: updateUserDto.targetLang,
+              isFirst: true,
             },
           },
         },
       });
+      console.log(updatedUser);
       const token = await this.signToken(
         updatedUser.id,
         updatedUser.email,
@@ -270,7 +305,7 @@ export class AuthService {
         httpOnly: true,
       });
 
-      return { message: 'Language updated' };
+      return { message: 'Language updated', statusCode: 200 };
     } catch (error) {
       throw error;
     }

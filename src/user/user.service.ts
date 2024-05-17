@@ -32,6 +32,9 @@ export class UserService {
                 },
               },
             },
+            orderBy: {
+              createdAt: 'asc',
+            },
           },
           UserWord: {
             include: {

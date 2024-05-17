@@ -51,6 +51,7 @@ export class LanguageService {
           languages: {
             create: {
               languageCode: createLanguageDto.languageCode,
+              isFirst: false,
             },
           },
         },
@@ -68,7 +69,11 @@ export class LanguageService {
       const language = await this.prisma.userLanguage.findUnique({
         where: { id },
         include: {
-          categories: true,
+          categories: {
+            include: {
+              userWords: true,
+            },
+          },
         },
       });
       if (!language) {
@@ -78,6 +83,79 @@ export class LanguageService {
         throw new ForbiddenException('Not Authorized');
       }
       return language.categories;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async cancelSubscription(id: string, req: Request) {
+    try {
+      const decodedUserInfo = req.user as { id: string; email: string };
+
+      if (id !== decodedUserInfo.id) {
+        throw new ForbiddenException('Not Authorized');
+      }
+
+      await this.prisma.userLanguage.deleteMany({
+        where: { userId: id, isFirst: false },
+      });
+
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+        include: {
+          languages: true,
+          UserWord: {
+            orderBy: {
+              createdAt: 'asc', // createdAt'e göre artan sıralama yaparak ilk eklenen kelimeleri alır
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const remainingWords = user.UserWord.length;
+      const exceededWords = Math.max(0, remainingWords - 25);
+
+      if (exceededWords > 0) {
+        const wordsToDelete = user.UserWord.slice(0, exceededWords);
+        await this.prisma.userWord.deleteMany({
+          where: {
+            id: {
+              in: wordsToDelete.map((word) => word.id),
+            },
+          },
+        });
+      }
+
+      await this.prisma.user.update({
+        where: { id },
+        data: {
+          type: 'NORMAL',
+        },
+      });
+      return { message: 'Language deleted' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async createSubsciption(id: string, req: Request) {
+    try {
+      const decodedUserInfo = req.user as { id: string; email: string };
+
+      if (id !== decodedUserInfo.id) {
+        throw new ForbiddenException('Not Authorized');
+      }
+      await this.prisma.user.update({
+        where: { id },
+        data: {
+          type: 'PREMIUM',
+        },
+      });
+      return { message: 'Language created' };
     } catch (error) {
       throw error;
     }

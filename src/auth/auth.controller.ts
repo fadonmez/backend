@@ -27,9 +27,11 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    console.log('istek');
     return this.authService.login(loginDto, req, res);
   }
 
+  @Throttle({ short: { ttl: 10000, limit: 1 } })
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
@@ -40,11 +42,16 @@ export class AuthController {
     return this.authService.logout(req, res);
   }
 
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
+  @Throttle({ short: { ttl: 10000, limit: 1 } })
   @HttpCode(HttpStatus.OK)
   @Post('new-verification')
-  async newVerification(@Body() newVerification: { token: string }) {
-    return this.authService.verify(newVerification.token);
+  async newVerification(
+    @Body() newVerification: { token: string; email: string },
+  ) {
+    return this.authService.verify(
+      newVerification.token,
+      newVerification.email,
+    );
   }
 
   @Get('google')
@@ -65,6 +72,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    console.log('sa istek');
     return this.authService.updateLanguage(id, updateUserDto, req, res);
   }
 }
