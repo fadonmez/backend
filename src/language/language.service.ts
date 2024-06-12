@@ -136,7 +136,7 @@ export class LanguageService {
           type: 'NORMAL',
         },
       });
-      return { message: 'Language deleted' };
+      return { message: 'Language deleted', statusCode: 201 };
     } catch (error) {
       throw error;
     }
@@ -155,7 +155,7 @@ export class LanguageService {
           type: 'PREMIUM',
         },
       });
-      return { message: 'Language created' };
+      return { message: 'Language created', statusCode: 201 };
     } catch (error) {
       throw error;
     }

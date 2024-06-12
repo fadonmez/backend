@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, UpdateUserDto } from './dto';
+import { GoogleRegisterDto, LoginDto, RegisterDto, UpdateUserDto } from './dto';
 import { Request, Response } from 'express';
 import { GoogleGuard, JwtGuard } from './guard';
 import { Throttle } from '@nestjs/throttler';
@@ -35,6 +35,13 @@ export class AuthController {
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Throttle({ short: { ttl: 10000, limit: 1 } })
+  @Post('google-register')
+  googleRegister(@Body() registerDto: GoogleRegisterDto) {
+    console.log('istek');
+    return this.authService.googleRegister(registerDto);
   }
 
   @Get('logout')

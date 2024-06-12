@@ -27,6 +27,20 @@ export class RegisterDto {
   password: string;
 }
 
+export class GoogleRegisterDto {
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  picture: string;
+}
+
 export class UpdateUserDto {
   @IsNotEmpty()
   @IsString()

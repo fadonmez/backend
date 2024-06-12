@@ -6,7 +6,7 @@ import {
   Redirect,
   RequestTimeoutException,
 } from '@nestjs/common';
-import { LoginDto, RegisterDto, UpdateUserDto } from './dto';
+import { GoogleRegisterDto, LoginDto, RegisterDto, UpdateUserDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -87,6 +87,32 @@ export class AuthService {
     }
   }
 
+  async googleRegister(registerDto: GoogleRegisterDto) {
+    try {
+      const data = await this.findOrCreateGoogleUser(registerDto);
+
+      if (!data) {
+        throw new ConflictException('User already exists');
+      }
+
+      const token = await this.signToken(
+        data.user.id,
+        data.user.email,
+        data.user.nativeLanguage,
+        data.user.type,
+      );
+
+      return {
+        message: 'Logged in successfuly!',
+        token,
+        statusCode: 200,
+        alreadyExists: data.alreadyExists,
+      };
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async logout(req: Request, res: Response) {
     res.clearCookie('token');
     return res.send({ message: 'Logged out successfuly!' });
@@ -151,7 +177,7 @@ export class AuthService {
 
     if (existingUser) {
       if (!existingUser.password) {
-        return existingUser;
+        return { user: existingUser, alreadyExists: true };
       } else {
         return null;
       }
@@ -161,13 +187,14 @@ export class AuthService {
       const user = await this.prisma.user.create({
         data: {
           email: userData.email,
-          name: userData.firstName,
+          name: userData.name,
           image: userData.picture,
           emailVerified: new Date(),
         },
       });
-      return user;
+      return { user, alreadyExists: false };
     } catch (error) {
+      console.log('aaaa', error);
       if (error instanceof PrismaClientKnownRequestError) {
         switch (error.code) {
           case 'P2002':
