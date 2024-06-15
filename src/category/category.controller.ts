@@ -31,6 +31,7 @@ export class CategoryController {
   @Throttle({ short: { ttl: 7000, limit: 3 } })
   @Post()
   updateCategory(@Body() categoryDto: CategoryDto, @Req() req: Request) {
+    console.log(req);
     return this.categoryService.createCategory(categoryDto, req);
   }
 

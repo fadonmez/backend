@@ -29,6 +29,7 @@ export class WordController {
   })
   @Post()
   createWord(@Body() createWordDto: CreateWordDto, @Req() req) {
+    console.log(req);
     return this.wordService.createWord(createWordDto, req);
   }
 
