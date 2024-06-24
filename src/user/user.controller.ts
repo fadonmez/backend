@@ -20,7 +20,6 @@ export class UserController {
   @Throttle({ short: { ttl: 1000, limit: 10 } })
   @Get(':id')
   getUserById(@Param('id') userId: string, @Req() req: Request) {
-    console.log('istek geldi');
     return this.userService.getUserById(userId, req);
   }
 }

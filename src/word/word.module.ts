@@ -9,5 +9,6 @@ import { CategoryModule } from 'src/category/category.module';
   imports: [OpenAiModule, UserModule, CategoryModule],
   controllers: [WordController],
   providers: [WordService],
+  exports: [WordService],
 })
 export class WordModule {}

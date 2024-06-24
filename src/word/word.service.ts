@@ -102,7 +102,6 @@ export class WordService {
 
       const systemPromptUpdate = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Before translating, you will determine in which language "wordName" is a word. If everything's fine, return {"translation": (translatedWord)}. If another issue arises, return "error": "Something went wrong". `;
 
-      console.log(userPrompt);
       if (existingWord) {
         // if there is an exampleWord then use existingword's example
         const result: any = await this.openAiService.translate(
@@ -146,8 +145,6 @@ export class WordService {
         systemPrompt,
         userPrompt,
       );
-
-      console.log(result);
 
       if (result.error) throw new ForbiddenException(result.error);
 
@@ -272,6 +269,26 @@ export class WordService {
       return formattedWords;
     } catch (error) {
       return null;
+    }
+  }
+
+  async getWordByName(word: string, languageCode: string) {
+    try {
+      const result = await this.prisma.word.findUnique({
+        where: { wordName: word.toLowerCase(), languageCode },
+        include: {
+          translations: {
+            select: {
+              translationValue: true,
+              languageCode: true,
+            },
+          },
+        },
+      });
+
+      return result;
+    } catch (error) {
+      console.log('za', error);
     }
   }
 }

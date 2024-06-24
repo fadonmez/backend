@@ -6,11 +6,10 @@ import { UserModule } from './user/user.module';
 import { CategoryModule } from './category/category.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { EmailModule } from './auth/email/email.module';
-import { TokenModule } from './auth/token/token.module';
 import { OpenAiModule } from './openai/openai.module';
 import { WordModule } from './word/word.module';
 import { LanguageModule } from './language/language.module';
+import { StoryModule } from 'story/story.module';
 
 @Module({
   imports: [
@@ -18,10 +17,9 @@ import { LanguageModule } from './language/language.module';
     AuthModule,
     PrismaModule,
     UserModule,
-    EmailModule,
     OpenAiModule,
-    TokenModule,
     CategoryModule,
+    StoryModule,
     WordModule,
     LanguageModule,
     ThrottlerModule.forRoot([

@@ -41,6 +41,12 @@ export class GoogleRegisterDto {
   picture: string;
 }
 
+export class GoogleLoginDto {
+  @IsNotEmpty()
+  @IsString()
+  idToken: string;
+}
+
 export class UpdateUserDto {
   @IsNotEmpty()
   @IsString()
