@@ -11,25 +11,31 @@ export class OpenAiService {
   });
 
   async translate(systemPrompt: string, userPrompt: any) {
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-3.5-turbo-0125',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: JSON.stringify(userPrompt),
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 64,
-      top_p: 1,
-    });
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo-0125',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content: JSON.stringify(userPrompt),
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 64,
+        top_p: 1,
+      });
 
-    const result: any = JSON.parse(response.choices[0].message.content as any);
+      const result: any = JSON.parse(
+        response.choices[0].message.content as any,
+      );
 
-    return result;
+      return result;
+    } catch (error) {
+      console.log(error);
+    }
   }
 }
