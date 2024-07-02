@@ -59,7 +59,7 @@ export class StoryService {
         nativeLang: storyTranslateWordDto.nativeLang.toLowerCase(),
       };
 
-      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Return error if "wordName" contains extra characters. And you will give a sample sentence of up to 12 words in ${userPrompt.targetLang} containing the word. Before translating, you will determine in which language "wordName" is a word. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguageCode), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Something went wrong".`;
+      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Return error if "wordName" contains extra characters. And you will give a sample sentence of up to 12 words in ${userPrompt.targetLang} containing the word. Before translating, you will determine in which language "wordName" is a word. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguageCode), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Something went wrong". (and reason of the error)`;
 
       const isWordInDatabase = await this.wordService.getWordByName(
         storyTranslateWordDto.wordName,
@@ -107,6 +107,7 @@ export class StoryService {
 
       if (translatedWord.error)
         throw new ForbiddenException(translatedWord.error);
+
       await this.prisma.word.create({
         data: {
           languageCode: storyTranslateWordDto.languageCode,
@@ -133,7 +134,7 @@ export class StoryService {
         languageCode: translatedWord.wordLanguage,
       };
     } catch (error) {
-      console.log(error);
+      throw error;
     }
   }
 

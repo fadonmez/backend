@@ -9,7 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { OpenAiModule } from './openai/openai.module';
 import { WordModule } from './word/word.module';
 import { LanguageModule } from './language/language.module';
-import { StoryModule } from 'story/story.module';
+import { StoryModule } from './story/story.module';
 
 @Module({
   imports: [

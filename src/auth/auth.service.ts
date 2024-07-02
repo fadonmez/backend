@@ -154,7 +154,6 @@ export class AuthService {
       });
       return { user, alreadyExists: false };
     } catch (error) {
-      console.log('aaaa', error);
       if (error instanceof PrismaClientKnownRequestError) {
         switch (error.code) {
           case 'P2002':

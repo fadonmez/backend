@@ -109,7 +109,9 @@ export class WordService {
           userPrompt,
         );
         if (result.error) {
-          console.log('Sa');
+          throw new ForbiddenException(
+            'Please check your inputs and try again',
+          );
         }
         const translationValue: any = result.translation;
         await this.prisma.word.update({
@@ -288,7 +290,7 @@ export class WordService {
 
       return result;
     } catch (error) {
-      console.log('za', error);
+      console.log(error);
     }
   }
 }
