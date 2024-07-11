@@ -1,10 +1,12 @@
 import {
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { GoogleRegisterDto, UpdateUserDto } from './dto';
+import { AppleLoginDto, GoogleRegisterDto, UpdateUserDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { JwtService } from '@nestjs/jwt';
@@ -12,10 +14,30 @@ import { Request, Response } from 'express';
 import { jwtSecret } from 'src/utils/constants';
 import { OAuth2Client } from 'google-auth-library';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
+import * as jwtToken from 'jsonwebtoken';
+import { jwtDecode, JwtHeader } from 'jwt-decode';
+import * as jwksClient from 'jwks-rsa';
 
+export type JwtTokenSchema = {
+  iss: string;
+  aud: string;
+  exp: number;
+  iat: number;
+  sub: string;
+  nonce: string;
+  c_hash: string;
+  email: string;
+  email_verified: string;
+  is_private_email: string;
+  auth_time: number;
+};
 @Injectable()
 export class AuthService {
   private google: OAuth2Client;
+  private readonly audience: string;
+  private readonly isInProd: boolean;
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
@@ -25,6 +47,106 @@ export class AuthService {
       process.env.GOOGLE_CLIENT_ID,
       process.env.JWT_SECRET,
     );
+    this.isInProd = configService.get<string>('NODE_ENV') === 'production';
+    this.audience = this.isInProd ? 'com.aitu.svogo' : 'com.aitu.svogo';
+  }
+
+  public async ValidateTokenAndDecode(token: string): Promise<JwtTokenSchema> {
+    const tokenDecodedHeader: JwtHeader & { kid: string } = jwtDecode<
+      JwtHeader & { kid: string }
+    >(token, {
+      header: true,
+    });
+    const { data }: any = await axios.get(
+      'https://appleid.apple.com/auth/keys',
+    );
+    const client: jwksClient.JwksClient = jwksClient({
+      jwksUri: 'https://appleid.apple.com/auth/keys',
+    });
+    const kid: string = tokenDecodedHeader.kid;
+    const sharedKid: string = data.keys.filter((x) => x['kid'] === kid)[0]?.[
+      'kid'
+    ];
+    const key: jwksClient.CertSigningKey | jwksClient.RsaSigningKey =
+      await client.getSigningKey(sharedKid);
+    const signingKey: string = key.getPublicKey();
+    if (!signingKey) {
+      throw new HttpException(
+        'Validation failed for login.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    try {
+      const res: JwtTokenSchema = <JwtTokenSchema>(
+        jwtToken.verify(token, signingKey)
+      );
+      this.ValidateToken(res);
+      return res;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private ValidateToken(token: JwtTokenSchema): void {
+    if (token.iss !== 'https://appleid.apple.com') {
+      throw { message: 'Issuers do not match!' };
+    }
+    if (token.aud !== this.audience) {
+      throw { message: 'Audiences do not match!' };
+    }
+  }
+
+  async appleLogin(loginDto: AppleLoginDto): Promise<any> {
+    try {
+      const validatedToken = await this.ValidateTokenAndDecode(
+        loginDto.idToken,
+      );
+
+      console.log(loginDto);
+
+      const data = await this.findOrCreateUser(
+        validatedToken.sub,
+        loginDto.email,
+        loginDto.name,
+      );
+
+      console.log(data);
+
+      const token = await this.signToken(
+        data.user.id,
+        data.user.email,
+        data.user.nativeLanguage,
+        data.user.type,
+      );
+
+      return {
+        token,
+        alreadyExists: data.alreadyExists,
+        statusCode: 200,
+        message: 'Logged in succesfully !',
+      };
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async findOrCreateUser(sub: string, email?: string, name?: string) {
+    let user = await this.prisma.user.findUnique({
+      where: { sub },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          sub,
+          email,
+          name,
+        },
+      });
+      return { user, alreadyExists: false };
+    }
+
+    return { user, alreadyExists: true };
   }
 
   async getProfileByToken(loginDto: any): Promise<any> {
@@ -57,7 +179,7 @@ export class AuthService {
       const data = await this.findOrCreateGoogleUser(registerDto);
 
       if (!data) {
-        throw new ConflictException('User already exists');
+        throw new ConflictException('Something went wrong!');
       }
 
       const token = await this.signToken(

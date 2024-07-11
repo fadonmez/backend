@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class LoginDto {
   @IsNotEmpty()
@@ -45,6 +51,18 @@ export class GoogleLoginDto {
   @IsNotEmpty()
   @IsString()
   idToken: string;
+}
+
+export class AppleLoginDto {
+  @IsNotEmpty()
+  @IsString()
+  idToken: string;
+
+  @IsOptional()
+  email: string;
+
+  @IsOptional()
+  name: string;
 }
 
 export class UpdateUserDto {

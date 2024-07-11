@@ -7,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
 enum UserRole {
   ADMIN
   USER
@@ -31,6 +29,7 @@ enum WordLevel {
 model User {
   id             String         @id @default(cuid())
   email          String         @unique
+  sub            String?        @unique
   name           String
   emailVerified  DateTime?
   image          String?
@@ -106,13 +105,10 @@ model UserWord {
 }
 
 model Story {
-  id     String     @id @default(cuid())
-  title  String
+  id           String    @id @default(cuid())
+  title        String
   languageCode String
-  storyLevel WordLevel  @default(A2)
-  content String
-  imageUrl String   
+  storyLevel   WordLevel @default(A2)
+  content      String
+  imageUrl     String
 }
-
-
-

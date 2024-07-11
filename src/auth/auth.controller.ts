@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { GoogleLoginDto, UpdateUserDto } from './dto';
+import { AppleLoginDto, GoogleLoginDto, UpdateUserDto } from './dto';
 import { Request, Response } from 'express';
 import { GoogleGuard, JwtGuard } from './guard';
 import { Throttle } from '@nestjs/throttler';
@@ -23,6 +23,12 @@ export class AuthController {
   @Post('google-register')
   googleRegister(@Body() loginDto: GoogleLoginDto) {
     return this.authService.getProfileByToken(loginDto);
+  }
+
+  @Throttle({ short: { ttl: 10000, limit: 1 } })
+  @Post('apple')
+  appleRegister(@Body() loginDto: AppleLoginDto) {
+    return this.authService.appleLogin(loginDto);
   }
 
   @Get('logout')
