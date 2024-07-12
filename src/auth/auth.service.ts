@@ -102,15 +102,11 @@ export class AuthService {
         loginDto.idToken,
       );
 
-      console.log(loginDto);
-
       const data = await this.findOrCreateUser(
         validatedToken.sub,
         loginDto.email,
         loginDto.name,
       );
-
-      console.log(data);
 
       const token = await this.signToken(
         data.user.id,
@@ -127,6 +123,7 @@ export class AuthService {
       };
     } catch (error) {
       console.log(error);
+      throw error;
     }
   }
 
@@ -192,6 +189,7 @@ export class AuthService {
       return { token, alreadyExists: data.alreadyExists };
     } catch (error) {
       console.log(error);
+      throw error;
     }
   }
 

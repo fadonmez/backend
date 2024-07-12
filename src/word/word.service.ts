@@ -291,6 +291,7 @@ export class WordService {
       return result;
     } catch (error) {
       console.log(error);
+      throw error;
     }
   }
 }
