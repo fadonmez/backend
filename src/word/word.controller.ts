@@ -24,7 +24,7 @@ export class WordController {
   }
 
   @Throttle({
-    short: { ttl: 6000, limit: 1 },
+    short: { ttl: 3000, limit: 1 },
     long: { ttl: 21600000, limit: 100 },
   })
   @Post()

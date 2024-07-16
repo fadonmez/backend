@@ -37,7 +37,7 @@ export class StoryController {
   }
 
   @Throttle({
-    short: { ttl: 10000, limit: 1 },
+    short: { ttl: 6000, limit: 1 },
     long: { ttl: 21600000, limit: 100 },
   })
   @Put()

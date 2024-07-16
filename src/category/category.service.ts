@@ -90,7 +90,6 @@ export class CategoryService {
         statusCode: 201,
       };
     } catch (error) {
-      console.log(error);
       throw error;
     }
   }
