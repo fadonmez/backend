@@ -29,13 +29,18 @@ export class OpenAiService {
         top_p: 1,
       });
 
-      const result: any = JSON.parse(
-        response.choices[0].message.content as any,
-      );
+      let result: any;
+      try {
+        result = JSON.parse(response.choices[0].message.content);
+      } catch (jsonError) {
+        return {
+          error: 'Word translation failed. We apologize for the error.',
+          details: jsonError.message,
+        };
+      }
 
       return result;
     } catch (error) {
-      console.log(error);
       throw error;
     }
   }

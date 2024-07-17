@@ -3,14 +3,13 @@ import {
   Controller,
   Get,
   Param,
-  Post,
   Put,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtGuard } from 'src/auth/guard';
 import { StoryService } from './story.service';
-import { CreateStoryDto, StoryTranslateWordDto } from './dto';
+import { StoryTranslateWordDto } from './dto';
 import { Throttle } from '@nestjs/throttler';
 
 @UseGuards(JwtGuard)
@@ -31,13 +30,8 @@ export class StoryController {
     return this.storyService.getStoryById(id);
   }
 
-  @Post()
-  createStory(@Body() createStoryDto: CreateStoryDto, @Req() req) {
-    return this.storyService.createStory(createStoryDto, req);
-  }
-
   @Throttle({
-    short: { ttl: 6000, limit: 1 },
+    short: { ttl: 4000, limit: 1 },
     long: { ttl: 21600000, limit: 100 },
   })
   @Put()
