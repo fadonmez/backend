@@ -9,6 +9,7 @@ import { OpenAiService } from 'src/openai/openai.service';
 import { Request } from 'express';
 import { UserService } from 'src/user/user.service';
 import { CategoryService } from 'src/category/category.service';
+import { languages } from 'src/utils/constants';
 
 @Injectable()
 export class WordService {
@@ -94,8 +95,8 @@ export class WordService {
 
       const userPrompt = {
         wordName: createWordDto.wordName,
-        targetLang: createWordDto.languageCode,
-        nativeLang: createWordDto.nativeLang,
+        targetLang: languages[createWordDto.languageCode],
+        nativeLang: languages[createWordDto.nativeLang],
       };
 
       const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Return error if "wordName" contains extra characters. And you will give a sample sentence of up to 12 words in ${userPrompt.targetLang} containing the word. Before translating, you will determine in which language "wordName" is a word. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguageCode), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Word translation failed. We apologize for the error."`;

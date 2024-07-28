@@ -4,6 +4,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { WordService } from 'src/word/word.service';
 import { CreateStoryDto, StoryTranslateWordDto } from './dto';
 import { Request } from 'express';
+import { languages } from 'src/utils/constants';
 
 @Injectable()
 export class StoryService {
@@ -55,8 +56,8 @@ export class StoryService {
     try {
       const userPrompt = {
         wordName: storyTranslateWordDto.wordName.toLowerCase(),
-        targetLang: storyTranslateWordDto.languageCode.toLowerCase(),
-        nativeLang: storyTranslateWordDto.nativeLang.toLowerCase(),
+        targetLang: languages[storyTranslateWordDto.languageCode.toLowerCase()],
+        nativeLang: languages[storyTranslateWordDto.nativeLang.toLowerCase()],
       };
 
       const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Return error if "wordName" contains extra characters. And you will give a sample sentence of up to 12 words in ${userPrompt.targetLang} containing the word. Before translating, you will determine in which language "wordName" is a word. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguageCode), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Word translation failed. We apologize for the error.`;
