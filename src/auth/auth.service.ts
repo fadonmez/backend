@@ -138,6 +138,7 @@ export class AuthService {
           sub,
           email,
           name,
+          emailVerified: new Date(),
         },
       });
       return { user, alreadyExists: false };
