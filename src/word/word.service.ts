@@ -151,7 +151,10 @@ export class WordService {
 
       if (result.error) throw new ForbiddenException(result.error);
 
-      if (result.wordLanguage !== createWordDto.languageCode)
+      if (
+        result.wordLanguage !== createWordDto.languageCode &&
+        result.wordLanguage !== userPrompt.targetLang
+      )
         throw new ForbiddenException(
           'Please add a word from your target Language',
         );
