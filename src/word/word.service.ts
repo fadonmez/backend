@@ -99,7 +99,7 @@ export class WordService {
         nativeLang: languages[createWordDto.nativeLang],
       };
 
-      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Return error if "wordName" contains extra characters. And you will give a sample sentence of up to 12 words in ${userPrompt.targetLang} containing the word. Before translating, you will determine in which language "wordName" is a word. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguageCode), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Word translation failed. We apologize for the error."`;
+      const systemPrompt = `You are a translation tool. You receive three inputs from the user: "wordName" for the name of the word, "targetLang" for the language of the word and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Return error if "wordName" contains extra characters. And you will give a sample sentence of up to 12 words in ${userPrompt.targetLang} containing the word. Before translating, you will determine in which language "wordName" is a word. If everything is OK, it returns {"translation": (translatedWord), "example": (example), "wordLanguage": (determinedLanguage), "wordLevel": (levelOfTheWord. Only A1,A2,B1,B2,C1,C2)}. If any other problem occurs, it returns "error": "Word translation failed. We apologize for the error."`;
 
       const systemPromptUpdate = `You're a translation tool. You get three inputs from the user: "wordName" for the word's name, "targetLang" for the word's language, and "nativeLang" for the translation language. You will translate ${userPrompt.wordName} from ${userPrompt.targetLang} to ${userPrompt.nativeLang}. Before translating, you will determine in which language "wordName" is a word. If everything's fine, return {"translation": (translatedWord)}. If another issue arises, return "error": "Word translation failed. We apologize for the error." `;
 
@@ -149,11 +149,13 @@ export class WordService {
         userPrompt,
       );
 
+      console.log(result);
+
       if (result.error) throw new ForbiddenException(result.error);
 
       if (
-        result.wordLanguage !== createWordDto.languageCode &&
-        result.wordLanguage !== userPrompt.targetLang
+        result.wordLanguage.toLowerCase() !== createWordDto.languageCode &&
+        result.wordLanguage.toLowerCase() !== userPrompt.targetLang
       )
         throw new ForbiddenException(
           'Please add a word from your target Language',
