@@ -149,8 +149,6 @@ export class WordService {
         userPrompt,
       );
 
-      console.log(result);
-
       if (result.error) throw new ForbiddenException(result.error);
 
       if (
