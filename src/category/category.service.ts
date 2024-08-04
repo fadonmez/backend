@@ -58,15 +58,22 @@ export class CategoryService {
       if (categoryDto.userId !== decodedUserInfo.id) {
         throw new ForbiddenException('Not authorized');
       }
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: categoryDto.userId },
+      });
+
       const userCategories = await this.prisma.category.findMany({
         where: {
           userId: categoryDto.userId,
           languageCode: categoryDto.languageCode,
         },
       });
+
       const categoryLenght: number = userCategories?.length;
-      if (categoryLenght >= 5) {
-        throw new ForbiddenException('You can only have 5 categories');
+
+      if (user.type === 'NORMAL' && categoryLenght >= 10) {
+        throw new ForbiddenException("You've reached the category limit.");
       }
       const existingCategory = userCategories?.find(
         (element) =>
