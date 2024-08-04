@@ -24,8 +24,8 @@ export class WordController {
   }
 
   @Throttle({
-    short: { ttl: 3000, limit: 1 },
-    long: { ttl: 21600000, limit: 100 },
+    short: { ttl: 2000, limit: 1 },
+    long: { ttl: 86400, limit: 1000 },
   })
   @Post()
   createWord(@Body() createWordDto: CreateWordDto, @Req() req) {
