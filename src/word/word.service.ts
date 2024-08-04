@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -47,7 +48,7 @@ export class WordService {
       }
       const userWords: any = await this.getUserWords(createWordDto.userId);
       if (user.type === 'NORMAL' && userWords.length >= 25) {
-        throw new ForbiddenException('You have reached the limit of 25 words ');
+        throw new ForbiddenException('wordLimit');
       }
 
       //TODO: CHECK WORD DETECTION SYSTEM
@@ -57,7 +58,7 @@ export class WordService {
           word.wordName === createWordDto.wordName.toLowerCase().trim(),
       );
       if (existingWordUser) {
-        throw new ForbiddenException('Word already exists in your account');
+        throw new ConflictException('Word already exists in your account');
       }
       const existingWord: any = await this.prisma.word.findUnique({
         where: { wordName: createWordDto.wordName.toLowerCase().trim() },
@@ -66,9 +67,7 @@ export class WordService {
 
       if (existingWord) {
         if (existingWord.languageCode !== createWordDto.languageCode)
-          throw new ForbiddenException(
-            'Please add a word from your target language!',
-          );
+          throw new ForbiddenException('wrongLanguage');
         const existingTranslation: any = existingWord.translations.find(
           (translation: any) =>
             translation.languageCode === createWordDto.nativeLang,
@@ -89,6 +88,7 @@ export class WordService {
           });
           return {
             message: 'Word created successfully v existing translation',
+            statusCode: 200,
           };
         }
       }
@@ -141,6 +141,7 @@ export class WordService {
         });
         return {
           message: 'Word created succesfully w existingWord update translate',
+          statusCode: 200,
         };
       }
       // if there is no existingword create brand new word with example
@@ -155,9 +156,7 @@ export class WordService {
         result.wordLanguage.toLowerCase() !== createWordDto.languageCode &&
         result.wordLanguage.toLowerCase() !== userPrompt.targetLang
       )
-        throw new ForbiddenException(
-          'Please add a word from your target Language',
-        );
+        throw new ForbiddenException('wrongLanguage');
 
       const translationValue: any = result.translation;
 
@@ -188,7 +187,7 @@ export class WordService {
           },
         },
       });
-      return { message: 'Word created successfuly' };
+      return { message: 'Word created successfuly', statusCode: 200 };
     } catch (error) {
       throw error;
     }

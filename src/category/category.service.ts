@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -72,7 +73,7 @@ export class CategoryService {
 
       const categoryLenght: number = userCategories?.length;
 
-      if (user.type === 'NORMAL' && categoryLenght >= 10) {
+      if (user.type === 'NORMAL' && categoryLenght >= 5) {
         throw new ForbiddenException("You've reached the category limit.");
       }
       const existingCategory = userCategories?.find(
@@ -80,7 +81,7 @@ export class CategoryService {
           element.categoryName === categoryDto.category.toLowerCase().trim(),
       );
       if (existingCategory) {
-        throw new ForbiddenException('Category already exists');
+        throw new ConflictException('Category already exists');
       }
       const res = await this.prisma.category.create({
         data: {

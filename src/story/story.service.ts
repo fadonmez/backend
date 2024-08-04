@@ -29,7 +29,7 @@ export class StoryService {
         },
       });
     } catch (error) {
-      return null;
+      throw error;
     }
   }
 
@@ -95,10 +95,14 @@ export class StoryService {
           return {
             translationValue: translatedWord.translation,
             languageCode: translatedWord.wordLanguage,
+            statusCode: 200,
           };
         }
-
-        return translationValue;
+        return {
+          translationValue: translationValue.translationValue,
+          languageCode: translationValue.languageCode,
+          statusCode: 200,
+        };
       }
 
       const translatedWord = await this.openAiService.translate(
@@ -133,6 +137,7 @@ export class StoryService {
       return {
         translationValue: translatedWord.translation,
         languageCode: translatedWord.wordLanguage,
+        statusCode: 200,
       };
     } catch (error) {
       throw error;
