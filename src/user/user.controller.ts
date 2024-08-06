@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { JwtGuard } from 'src/auth/guard';
 import { UserService } from './user.service';
 import { GetUser } from 'src/auth/decorator';
@@ -21,5 +21,10 @@ export class UserController {
   @Get(':id')
   getUserById(@Param('id') userId: string, @Req() req: Request) {
     return this.userService.getUserById(userId, req);
+  }
+
+  @Delete(':id')
+  deleteUserById(@Param('id') userId: string, @Req() req: Request) {
+    return this.userService.deleteUserById(userId, req);
   }
 }

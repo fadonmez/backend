@@ -76,4 +76,37 @@ export class UserService {
       return null;
     }
   }
+
+  async deleteUserById(id: string, req: Request) {
+    try {
+      const decodedUserInfo = req.user as { id: string; email: string };
+      if (decodedUserInfo.id !== id) throw new ForbiddenException();
+
+      await this.prisma.userLanguage.deleteMany({
+        where: { userId: id },
+      });
+
+      // Kullanıcının verilerini sıfırlayın
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: {
+          emailVerified: null,
+          image: null,
+          nativeLanguage: null,
+          languages: { set: [] }, // Boş array kullanarak ilişkiyi sıfırlayın
+          password: null,
+          role: 'USER',
+          type: 'NORMAL',
+          UserWord: { set: [] }, // Boş array kullanarak ilişkiyi sıfırlayın
+        },
+      });
+      if (!updatedUser) {
+        throw new NotFoundException();
+      }
+
+      return { statusCode: 200, message: 'user deleted' };
+    } catch (error) {
+      throw error;
+    }
+  }
 }

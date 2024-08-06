@@ -132,6 +132,16 @@ export class AuthService {
       where: { sub },
     });
 
+    if (user && !user.emailVerified) {
+      user = await this.prisma.user.update({
+        where: { sub },
+        data: {
+          emailVerified: new Date(),
+        },
+      });
+      return { user, alreadyExists: true };
+    }
+
     if (!user) {
       user = await this.prisma.user.create({
         data: {
@@ -253,6 +263,16 @@ export class AuthService {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: userData.email },
     });
+
+    if (existingUser && !existingUser.emailVerified && !existingUser.image) {
+      await this.prisma.user.update({
+        where: { email: userData.email },
+        data: {
+          image: userData.picture,
+          emailVerified: new Date(),
+        },
+      });
+    }
 
     //TODO : CHECK EMAIL ALREADY EXISTS IN ANOTHER PROVIDER
 
