@@ -280,7 +280,7 @@ export class WordService {
   async getWordByName(word: string, languageCode: string) {
     try {
       const result = await this.prisma.word.findUnique({
-        where: { wordName: word.toLowerCase(), languageCode },
+        where: { wordName: word.toLowerCase().trim(), languageCode },
         include: {
           translations: {
             select: {
