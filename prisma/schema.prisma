@@ -73,14 +73,14 @@ model Category {
 model Word {
   id           String        @id @default(cuid())
   languageCode String
-  wordName     String        @unique
+  wordName     String
   language     Language      @relation(fields: [languageCode], references: [languageCode])
   translations Translation[]
   userWords    UserWord[]
   example      String
   wordLevel    WordLevel     @default(A1)
 
-  @@index([languageCode, wordName], name: "unique_word_per_language")
+  @@unique([languageCode, wordName], name: "unique_word_per_language")
 }
 
 model Translation {

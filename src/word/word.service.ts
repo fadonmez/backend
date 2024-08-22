@@ -55,15 +55,16 @@ export class WordService {
 
       const existingWordUser = userWords?.find(
         (word: any) =>
-          word.wordName === createWordDto.wordName.toLowerCase().trim(),
+          word.wordName === createWordDto.wordName.toLowerCase().trim() &&
+          word.languageCode === createWordDto.languageCode,
       );
       if (existingWordUser) {
         throw new ConflictException('Word already exists in your account');
       }
-      const existingWord: any = await this.prisma.word.findUnique({
-        where: { wordName: createWordDto.wordName.toLowerCase().trim() },
-        include: { translations: true },
-      });
+      const existingWord: any = await this.getWordByName(
+        createWordDto.wordName,
+        createWordDto.languageCode,
+      );
 
       if (existingWord) {
         if (existingWord.languageCode !== createWordDto.languageCode)
@@ -280,7 +281,12 @@ export class WordService {
   async getWordByName(word: string, languageCode: string) {
     try {
       const result = await this.prisma.word.findUnique({
-        where: { wordName: word.toLowerCase().trim(), languageCode },
+        where: {
+          unique_word_per_language: {
+            languageCode: languageCode,
+            wordName: word.toLowerCase().trim(),
+          },
+        },
         include: {
           translations: {
             select: {
