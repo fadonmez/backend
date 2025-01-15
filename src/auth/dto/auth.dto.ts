@@ -74,3 +74,9 @@ export class UpdateUserDto {
   @IsString()
   targetLang: string;
 }
+
+export class RefreshTokenDto {
+  @IsNotEmpty()
+  @IsString()
+  refreshToken: string;
+}

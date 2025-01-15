@@ -5,12 +5,13 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AppleLoginDto, GoogleRegisterDto, UpdateUserDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { JwtService } from '@nestjs/jwt';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { jwtSecret } from 'src/utils/constants';
 import { OAuth2Client } from 'google-auth-library';
 import { ConfigService } from '@nestjs/config';
@@ -37,6 +38,7 @@ export class AuthService {
   private google: OAuth2Client;
   private readonly audience: string;
   private readonly isInProd: boolean;
+  private readonly refreshTokenSecret: string;
 
   constructor(
     private prisma: PrismaService,
@@ -49,6 +51,9 @@ export class AuthService {
     );
     this.isInProd = configService.get<string>('NODE_ENV') === 'production';
     this.audience = this.isInProd ? 'com.aitu.svogo' : 'com.aitu.svogo';
+    this.refreshTokenSecret = this.configService.get<string>(
+      'REFRESH_TOKEN_SECRET',
+    );
   }
 
   public async ValidateTokenAndDecode(token: string): Promise<JwtTokenSchema> {
@@ -96,6 +101,51 @@ export class AuthService {
     }
   }
 
+  async generateTokens(
+    userId: string,
+    email: string,
+    nativeLanguage: string,
+    type: string,
+  ): Promise<{ token: string; refreshToken: string }> {
+    const [token, refreshToken] = await Promise.all([
+      this.signToken(userId, email, nativeLanguage, type),
+      this.generateRefreshToken(userId),
+    ]);
+
+    return {
+      token,
+      refreshToken,
+    };
+  }
+
+  private async generateRefreshToken(userId: string): Promise<string> {
+    try {
+      const refreshToken = await this.jwt.signAsync(
+        { sub: userId },
+        {
+          expiresIn: '1y', // 1 year expiration
+          secret: this.refreshTokenSecret,
+        },
+      );
+
+      // Store refresh token in database
+      await this.prisma.refreshToken.create({
+        data: {
+          token: refreshToken,
+          userId,
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        },
+      });
+
+      return refreshToken;
+    } catch (error) {
+      throw new HttpException(
+        'Error generating refresh token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async appleLogin(loginDto: AppleLoginDto): Promise<any> {
     try {
       const validatedToken = await this.ValidateTokenAndDecode(
@@ -108,7 +158,7 @@ export class AuthService {
         loginDto.name,
       );
 
-      const token = await this.signToken(
+      const tokens = await this.generateTokens(
         data.user.id,
         data.user.email,
         data.user.nativeLanguage,
@@ -116,13 +166,12 @@ export class AuthService {
       );
 
       return {
-        token,
+        ...tokens,
         alreadyExists: data.alreadyExists,
         statusCode: 200,
-        message: 'Logged in succesfully !',
+        message: 'Logged in successfully!',
       };
     } catch (error) {
-      console.log(error);
       throw error;
     }
   }
@@ -175,10 +224,9 @@ export class AuthService {
     });
 
     return {
-      message: 'Logged in successfuly!',
-      token: res.token,
+      message: 'Logged in successfully!',
+      ...res,
       statusCode: 200,
-      alreadyExists: res.alreadyExists,
     };
   }
 
@@ -190,23 +238,44 @@ export class AuthService {
         throw new ConflictException('Something went wrong!');
       }
 
-      const token = await this.signToken(
+      const tokens = await this.generateTokens(
         data.user.id,
         data.user.email,
         data.user.nativeLanguage,
         data.user.type,
       );
 
-      return { token, alreadyExists: data.alreadyExists };
+      return { ...tokens, alreadyExists: data.alreadyExists };
     } catch (error) {
-      console.log(error);
       throw error;
     }
   }
 
-  async logout(req: Request, res: Response) {
-    res.clearCookie('token');
-    return res.send({ message: 'Logged out successfuly!' });
+  async logout(req: Request) {
+    try {
+      const userId = req.user?.['id'];
+      if (!userId) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      await this.revokeRefreshToken(userId);
+
+      return { message: 'Logged out successfully!' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async revokeRefreshToken(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        revoked: false,
+      },
+      data: {
+        revoked: true,
+      },
+    });
   }
 
   async signToken(
@@ -223,40 +292,11 @@ export class AuthService {
     };
 
     const token = await this.jwt.signAsync(payload, {
-      expiresIn: '10d',
+      expiresIn: '15m', // 15 minutes for access token
       secret: jwtSecret,
     });
 
     return token;
-  }
-
-  async googleLogin(req: Request, res: Response) {
-    if (!req.user) {
-      return 'No user from google';
-    }
-
-    const googleUser = await this.findOrCreateGoogleUser(req.user);
-
-    if (!googleUser) {
-      return res.redirect('http://localhost:3000/login?error=P2002');
-    }
-
-    const token = await this.signToken(
-      googleUser.id,
-      googleUser.email,
-      googleUser.nativeLanguage,
-      googleUser.type,
-    );
-
-    res.cookie('token', token, {
-      expires: new Date(Date.now() + 90 * 24 * 60 * 1000),
-      httpOnly: true,
-    });
-
-    // return res.send({ message: 'test' });
-    setTimeout(() => {
-      return res.redirect('http://localhost:3000/home');
-    }, 800);
   }
 
   async findOrCreateGoogleUser(userData: any): Promise<any> {
@@ -273,8 +313,6 @@ export class AuthService {
         },
       });
     }
-
-    //TODO : CHECK EMAIL ALREADY EXISTS IN ANOTHER PROVIDER
 
     if (existingUser) {
       if (!existingUser.password) {
@@ -308,7 +346,6 @@ export class AuthService {
     userId: string,
     updateUserDto: UpdateUserDto,
     req: Request,
-    res: Response,
   ) {
     try {
       const decodedUserInfo = req.user as { id: string; email: string };
@@ -329,7 +366,7 @@ export class AuthService {
       }
       if (existingUser.languages.length > 0)
         throw new ForbiddenException('You already have languages');
-      const updatedUser = await this.prisma.user.update({
+      await this.prisma.user.update({
         where: { id: userId },
         data: {
           nativeLanguage: updateUserDto.nativeLang,
@@ -341,21 +378,53 @@ export class AuthService {
           },
         },
       });
-      const token = await this.signToken(
-        updatedUser.id,
-        updatedUser.email,
-        updatedUser.nativeLanguage,
-        updatedUser.type,
-      );
-
-      res.cookie('token', token, {
-        expires: new Date(Date.now() + 90 * 24 * 60 * 1000),
-        httpOnly: true,
-      });
 
       return { message: 'Language updated', statusCode: 200 };
     } catch (error) {
       throw error;
+    }
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<{ token: string }> {
+    try {
+      // Verify refresh token
+      const payload = await this.jwt.verifyAsync(refreshToken, {
+        secret: this.refreshTokenSecret,
+      });
+
+      // Check if refresh token exists and is valid
+      const storedToken = await this.prisma.refreshToken.findFirst({
+        where: {
+          token: refreshToken,
+          userId: payload.sub,
+          revoked: false,
+          expiresAt: {
+            gt: new Date(),
+          },
+        },
+        include: {
+          user: true,
+        },
+      });
+
+      if (!storedToken) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      // Generate new access token
+      const token = await this.signToken(
+        storedToken.user.id,
+        storedToken.user.email,
+        storedToken.user.nativeLanguage,
+        storedToken.user.type,
+      );
+
+      return { token };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid refresh token');
     }
   }
 }

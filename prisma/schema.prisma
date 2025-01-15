@@ -39,6 +39,7 @@ model User {
   role           UserRole       @default(USER)
   type           UserType       @default(NORMAL)
   UserWord       UserWord[]
+  refreshTokens  RefreshToken[]
 }
 
 model Language {
@@ -111,4 +112,17 @@ model Story {
   storyLevel   WordLevel @default(A2)
   content      String
   imageUrl     String
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

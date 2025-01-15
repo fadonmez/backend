@@ -6,18 +6,28 @@ import {
   Post,
   Put,
   Req,
-  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AppleLoginDto, GoogleLoginDto, UpdateUserDto } from './dto';
-import { Request, Response } from 'express';
-import { GoogleGuard, JwtGuard } from './guard';
+import {
+  AppleLoginDto,
+  GoogleLoginDto,
+  RefreshTokenDto,
+  UpdateUserDto,
+} from './dto';
+import { Request } from 'express';
+import { JwtGuard } from './guard';
 import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Post('refresh')
+  @Throttle({ short: { ttl: 1000, limit: 3 } })
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshAccessToken(refreshTokenDto.refreshToken);
+  }
 
   @Throttle({ short: { ttl: 10000, limit: 1 } })
   @Post('google-register')
@@ -31,19 +41,10 @@ export class AuthController {
     return this.authService.appleLogin(loginDto);
   }
 
+  @UseGuards(JwtGuard)
   @Get('logout')
-  logout(@Req() req, @Res() res) {
-    return this.authService.logout(req, res);
-  }
-
-  @Get('google')
-  @UseGuards(GoogleGuard)
-  async googleAuth() {}
-
-  @Get('callback/google')
-  @UseGuards(GoogleGuard)
-  googleAuthRedirect(@Req() req, @Res() res) {
-    return this.authService.googleLogin(req, res);
+  logout(@Req() req) {
+    return this.authService.logout(req);
   }
 
   @UseGuards(JwtGuard)
@@ -52,8 +53,7 @@ export class AuthController {
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.updateLanguage(id, updateUserDto, req, res);
+    return this.authService.updateLanguage(id, updateUserDto, req);
   }
 }
